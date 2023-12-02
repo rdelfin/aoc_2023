@@ -37,10 +37,10 @@ impl Game {
         Ok(Game { game_id, draws })
     }
 
-    pub fn possible(&self, red: u64, blue: u64, green: u64) -> bool {
+    pub fn possible(&self, red: u64, green: u64, blue: u64) -> bool {
         self.draws
             .iter()
-            .all(|draw| draw.possible(red, blue, green))
+            .all(|draw| draw.possible(red, green, blue))
     }
 }
 
@@ -81,7 +81,7 @@ impl Draw {
         })
     }
 
-    pub fn possible(&self, red: u64, blue: u64, green: u64) -> bool {
+    pub fn possible(&self, red: u64, green: u64, blue: u64) -> bool {
         self.num_red <= red && self.num_blue <= blue && self.num_green <= green
     }
 }
