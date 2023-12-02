@@ -5,17 +5,6 @@ pub struct Trie {
     root: TrieNode,
 }
 
-pub struct TrieSearcher<'a> {
-    trie_node: &'a TrieNode,
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-struct TrieNode {
-    val: String,
-    full: bool,
-    children: HashMap<char, TrieNode>,
-}
-
 impl Trie {
     pub fn new<'a, I: Iterator<Item = &'a str>>(values: I) -> Trie {
         let mut trie = Trie::default();
@@ -36,6 +25,19 @@ impl Trie {
     }
 }
 
+impl std::fmt::Display for Trie {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.root)
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct TrieNode {
+    val: String,
+    full: bool,
+    children: HashMap<char, TrieNode>,
+}
+
 impl TrieNode {
     // This function adds a value to the node and recursively populates it
     fn add(&mut self, curr: String, value: &str) {
@@ -43,6 +45,10 @@ impl TrieNode {
         if let Some(next_char) = value.chars().nth(0) {
             if let Some(node) = self.children.get_mut(&next_char) {
                 node.add(curr + &value[..1], &value[1..]);
+            } else {
+                let mut node = TrieNode::default();
+                node.add(curr + &value[..1], &value[1..]);
+                self.children.insert(next_char, node);
             }
         } else {
             self.full = true;
@@ -62,16 +68,47 @@ impl TrieNode {
     }
 }
 
+impl std::fmt::Display for TrieNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let leaf = if self.is_full() { " 🍃" } else { "" };
+        let children_str = self.children.iter().fold(String::new(), |acc, (_, child)| {
+            if acc.is_empty() {
+                format!("{child}")
+            } else {
+                format!("{acc}, {child}")
+            }
+        });
+        let children_str = if self.children.is_empty() {
+            String::new()
+        } else {
+            format!(": [{children_str}]")
+        };
+        write!(f, "(\"{}\"{leaf}){children_str}", self.val)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SearchError {
+    #[error("there was no match for this character")]
+    NoMatch,
+}
+
+pub struct TrieSearcher<'a> {
+    trie_node: &'a TrieNode,
+}
+
 impl<'a> TrieSearcher<'a> {
-    pub fn advance(&mut self, c: char) -> Option<&str> {
+    pub fn advance(&mut self, c: char) -> Result<Option<&str>, SearchError> {
         if let Some(node) = self.trie_node.get_next(c) {
             self.trie_node = node;
 
-            if self.trie_node.full {
-                return Some(self.trie_node.get_value());
+            if self.trie_node.is_full() {
+                Ok(Some(self.trie_node.get_value()))
+            } else {
+                Ok(None)
             }
+        } else {
+            Err(SearchError::NoMatch)
         }
-
-        None
     }
 }
