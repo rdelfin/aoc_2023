@@ -1,5 +1,9 @@
+use crate::trie::Trie;
 use clap::Parser;
-use std::io::{BufRead, BufReader, Read};
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Read},
+};
 
 mod trie;
 
@@ -10,22 +14,53 @@ pub struct Opt {
 }
 
 // This function takes a line and returns, respectively, the first and last digit, if they exist
-pub fn get_edge_digits(line: &str) -> Option<(u32, u32)> {
-    let mut digits = None;
-    for c in line.chars() {
-        if let Some(digit) = c.to_digit(10) {
-            if let Some((_, second)) = digits.as_mut() {
-                *second = digit;
-            } else {
-                digits = Some((digit, digit));
+pub fn get_first_digit<I: Iterator<Item = char> + Clone>(
+    line_iter: I,
+    digit_map: &HashMap<&'static str, u32>,
+    trie: &Trie,
+) -> Option<u32> {
+    let mut result = None;
+    let mut searcher = trie.get_searcher();
+
+    let mut char_iter = line_iter.clone();
+    let mut last_word_iter = line_iter.clone();
+    while let Some(c) = char_iter.next() {
+        match searcher.advance(c) {
+            Ok(Some(val)) => {
+                for _ in 0..searcher.len() {
+                    last_word_iter.next().expect("should match char_iter");
+                }
+                let digit = digit_map
+                    .get(&val[..])
+                    .expect("must exist due to construction");
+                result = Some(*digit);
+                break;
             }
+            Err(_) => {
+                // If we get no matches, we need to go all the way back to the first character we
+                // processed and skip just that one
+                last_word_iter
+                    .next()
+                    .expect("next should exist as we've seen a word before");
+                char_iter = last_word_iter.clone();
+                searcher = trie.get_searcher();
+            }
+            _ => {}
         }
     }
 
-    digits
+    result
 }
 
-pub fn get_line_numbers<R: Read>(r: R) -> std::io::Result<Vec<u32>> {
+// Returns the first and last digit all the lines provided
+pub fn get_line_numbers<R: Read>(
+    r: R,
+    fwd_digit_map: &HashMap<&'static str, u32>,
+    bwd_digit_map: &HashMap<&'static str, u32>,
+) -> std::io::Result<Vec<u32>> {
+    let fwd_trie = get_trie(fwd_digit_map);
+    let bwd_trie = get_trie(bwd_digit_map);
+
     let mut reader = BufReader::new(r);
     let mut numbers = Vec::new();
 
@@ -35,13 +70,27 @@ pub fn get_line_numbers<R: Read>(r: R) -> std::io::Result<Vec<u32>> {
             break;
         }
 
-        match get_edge_digits(&line) {
-            Some((l, r)) => {
-                numbers.push(l * 10 + r);
-            }
-            _ => println!("line has no digits"),
-        }
+        let first_digit = if let Some(d) = get_first_digit(line.chars(), &fwd_digit_map, &fwd_trie)
+        {
+            d
+        } else {
+            println!("line has no digits");
+            continue;
+        };
+        let last_digit =
+            if let Some(d) = get_first_digit(line.chars().rev(), &bwd_digit_map, &bwd_trie) {
+                d
+            } else {
+                println!("line has no digits");
+                continue;
+            };
+
+        numbers.push(first_digit * 10 + last_digit);
     }
 
     Ok(numbers)
+}
+
+fn get_trie(digit_map: &HashMap<&'static str, u32>) -> Trie {
+    Trie::new(digit_map.iter().map(|(s, _)| *s))
 }
