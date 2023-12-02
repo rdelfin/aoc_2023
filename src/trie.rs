@@ -21,6 +21,7 @@ impl Trie {
     pub fn get_searcher<'a>(&'a self) -> TrieSearcher<'a> {
         TrieSearcher {
             trie_node: &self.root,
+            processed_chars: 0,
         }
     }
 }
@@ -95,20 +96,26 @@ pub enum SearchError {
 
 pub struct TrieSearcher<'a> {
     trie_node: &'a TrieNode,
+    processed_chars: usize,
 }
 
 impl<'a> TrieSearcher<'a> {
-    pub fn advance(&mut self, c: char) -> Result<Option<&str>, SearchError> {
+    pub fn advance(&mut self, c: char) -> Result<Option<String>, SearchError> {
         if let Some(node) = self.trie_node.get_next(c) {
             self.trie_node = node;
+            self.processed_chars += 1;
 
             if self.trie_node.is_full() {
-                Ok(Some(self.trie_node.get_value()))
+                Ok(Some(self.trie_node.get_value().into()))
             } else {
                 Ok(None)
             }
         } else {
             Err(SearchError::NoMatch)
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.processed_chars
     }
 }
