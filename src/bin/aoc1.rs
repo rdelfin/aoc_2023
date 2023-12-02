@@ -1,18 +1,27 @@
 use clap::Parser;
 use color_eyre::eyre::Result;
-use std::io::{BufRead, BufReader, Read};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader, Read},
+};
 
 #[derive(Parser, Debug)]
 struct Opt {
-    #[clap(index = 0)]
+    #[clap(index = 1)]
     file_name: Option<String>,
 }
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    let opt = Opt::parse();
 
-    let numbers = get_line_numbers(std::io::stdin())?;
-    println!("Numbers: {numbers:?}");
+    let numbers = if let Some(file_name) = opt.file_name {
+        let file = File::open(file_name)?;
+        get_line_numbers(file)?
+    } else {
+        get_line_numbers(std::io::stdin())?
+    };
+
     let sum: u32 = numbers.into_iter().sum();
     println!("{sum}");
 
@@ -49,7 +58,7 @@ fn get_line_numbers<R: Read>(r: R) -> std::io::Result<Vec<u32>> {
             Some((l, r)) => {
                 numbers.push(l * 10 + r);
             }
-            _ => println!("line doesn't have two digits"),
+            _ => println!("line has no digits"),
         }
     }
 
