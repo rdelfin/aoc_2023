@@ -1,6 +1,8 @@
 use clap::Parser;
 use std::io::{BufRead, BufReader, Read};
 
+mod trie;
+
 #[derive(Parser, Debug)]
 pub struct Opt {
     #[clap(index = 1)]
