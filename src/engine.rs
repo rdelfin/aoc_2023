@@ -35,6 +35,11 @@ impl Vec2 {
     }
 }
 
+pub struct Gear {
+    pub pos: Vec2,
+    pub parts: (u64, u64),
+}
+
 impl Schematic {
     pub fn parse<'a, I: Iterator<Item = &'a str>>(lines: I) -> Schematic {
         let mut digits = HashMap::new();
@@ -110,6 +115,20 @@ impl Schematic {
             .collect()
     }
 
+    pub fn get_gears(&self) -> Vec<Gear> {
+        self.symbols
+            .iter()
+            .filter_map(|(pos, symbol)| {
+                let pos = *pos;
+                if symbol.0 == '*' {
+                    self.get_gear_parts(pos).map(|parts| Gear { pos, parts })
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     fn has_symbol_around(&self, pos: Vec2, digit: &Digit) -> bool {
         // We need to check:
         // - Blocks to the left and right
@@ -146,6 +165,14 @@ impl Schematic {
         }
 
         SYMBOLS.contains(&self.grid[pos.y as usize][pos.x as usize])
+    }
+
+    fn get_gear_parts(&self, pos: Vec2) -> Option<(u64, u64)> {
+        // The row above and below, we need to check all of 
+        self.longest_digit
+        for y in -1..=1 {
+        }
+        None
     }
 }
 
