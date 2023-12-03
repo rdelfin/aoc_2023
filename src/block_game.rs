@@ -42,6 +42,27 @@ impl Game {
             .iter()
             .all(|draw| draw.possible(red, green, blue))
     }
+
+    pub fn min_cubes(&self) -> Draw {
+        let mut min_cubes = Draw {
+            num_red: 0,
+            num_blue: 0,
+            num_green: 0,
+        };
+        for draw in &self.draws {
+            if draw.num_red > min_cubes.num_red {
+                min_cubes.num_red = draw.num_red;
+            }
+            if draw.num_blue > min_cubes.num_blue {
+                min_cubes.num_blue = draw.num_blue;
+            }
+            if draw.num_green > min_cubes.num_green {
+                min_cubes.num_green = draw.num_green;
+            }
+        }
+
+        min_cubes
+    }
 }
 
 impl Draw {
