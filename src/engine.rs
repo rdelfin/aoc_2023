@@ -35,9 +35,16 @@ impl Vec2 {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Gear {
     pub pos: Vec2,
     pub parts: (u64, u64),
+}
+
+impl Gear {
+    pub fn ratio(&self) -> u64 {
+        self.parts.0 * self.parts.1
+    }
 }
 
 impl Schematic {
@@ -168,11 +175,47 @@ impl Schematic {
     }
 
     fn get_gear_parts(&self, pos: Vec2) -> Option<(u64, u64)> {
-        // The row above and below, we need to check all of 
-        self.longest_digit
+        // The row above and below, we need to check starting from the left corner - the longest
+        // digit, and confirm if any are within the range of this gear
+        let mut part_values = (None, None);
+
         for y in -1..=1 {
+            let mut x = -(self.longest_digit as i64);
+            while x <= 1 {
+                if x == 0 && y == 0 {
+                    x += 1;
+                    continue;
+                }
+
+                let curr = Vec2::new(pos.x + x, pos.y + y);
+                if let Some(digit) = self.digits.get(&curr) {
+                    // If this is true, it MUST be touching the gear
+                    if curr.x + digit.len() as i64 >= pos.x {
+                        // Skip over the digit
+                        x += digit.len() as i64;
+
+                        // Add it to the part values
+                        if let (None, None) = part_values {
+                            part_values.0 = Some(digit.0);
+                        } else if let (Some(_), None) = part_values {
+                            part_values.1 = Some(digit.0);
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        x += 1;
+                    }
+                } else {
+                    x += 1;
+                }
+            }
         }
-        None
+
+        if let (Some(a), Some(b)) = part_values {
+            Some((a, b))
+        } else {
+            None
+        }
     }
 }
 
