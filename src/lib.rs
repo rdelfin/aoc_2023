@@ -6,6 +6,7 @@ use std::{
 };
 
 pub mod block_game;
+pub mod engine;
 pub mod trie;
 
 #[derive(Parser, Debug)]
